@@ -4,11 +4,11 @@ Application mobile React Native pour la commande et le paiement de produits dans
 
 ## Démo
 
-> **Vidéo de démonstration complète de l'application**
+> **Démonstration complète de l'application mobile**
 
-https://github.com/ElyesGhouaiel/Smart_Cafe/assets/demo.mp4
+![Demo de l'application](./docs/demo.gif)
 
-[📹 Voir la vidéo de démonstration](./docs/demo.mp4)
+[📹 Voir la vidéo complète en haute qualité (MP4)](./docs/demo.mp4)
 
 ## Installation
 
