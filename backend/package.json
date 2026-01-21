@@ -1,0 +1,38 @@
+{
+  "name": "smart-cafe-backend",
+  "version": "1.0.0",
+  "description": "API Backend pour Smart Café - Projet Ynov B3",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "init-db": "node src/database/init.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [
+    "smart-cafe",
+    "restaurant",
+    "api",
+    "nodejs",
+    "express"
+  ],
+  "author": "Equipe Smart Café",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "multer": "^2.0.2",
+    "sqlite3": "^5.1.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "nodemon": "^3.0.2"
+  }
+}
