@@ -1,5 +1,5 @@
 import {HttpService} from './HttpService';
-import {API_ENDPOINTS} from '../config/api';
+import {API_ENDPOINTS, API_CONFIG} from '../config/api';
 import {Product, ProductCategory} from '../../entities/Product';
 
 interface ApiProduct {
@@ -25,7 +25,6 @@ export interface Category {
 
 export class ProductService {
   private static mapApiProductToDomain(apiProduct: ApiProduct): Product {
-    // Backend returns category_name in French, we need type-safe enum
     const categoryMap: Record<string, ProductCategory> = {
       'boissons chaudes': 'beverage',
       'boissons froides': 'beverage',
@@ -57,13 +56,19 @@ export class ProductService {
       }
     }
 
+    // Build full image URL from relative path
+    const baseUrl = API_CONFIG.BASE_URL.replace('/api', '');
+    const imageUrl = apiProduct.image_url
+      ? `${baseUrl}${apiProduct.image_url}`
+      : 'https://via.placeholder.com/300x200/1E3A8A/FFFFFF?text=Product';
+
     return {
       id: String(apiProduct.id),
       name: apiProduct.name,
       description: apiProduct.description,
       price: apiProduct.price,
       category,
-      image: apiProduct.image_url || 'https://via.placeholder.com/300x200/1E3A8A/FFFFFF?text=Product',
+      image: imageUrl,
       available: apiProduct.is_available === 1,
       preparationTime: apiProduct.preparation_time || 5,
       allergens,
@@ -81,7 +86,6 @@ export class ProductService {
 
       console.log('[ProductService] Products fetched:', apiProducts.length);
 
-      // Map API products to Domain products
       const domainProducts = apiProducts.map(this.mapApiProductToDomain);
 
       return domainProducts;

@@ -1,9 +1,3 @@
-/**
- * ProductCard Component
- *
- * Card component to display product information in menu
- */
-
 import React from 'react';
 import {View, Text, Image, StyleSheet, TouchableOpacity} from 'react-native';
 import {Product} from '../../entities/Product';

@@ -1,9 +1,3 @@
-/**
- * Product Entity
- *
- * Represents a product in the café menu (Domain Model)
- */
-
 export type ProductCategory = 'beverage' | 'food' | 'dessert';
 
 export interface ProductOption {
@@ -26,9 +20,9 @@ export interface Product {
   category: ProductCategory;
   image: string;
   available: boolean;
-  preparationTime: number; // in minutes
+  preparationTime: number;
   allergens: string[];
-  tags?: string[]; // e.g., ['vegetarian', 'vegan', 'gluten-free']
+  tags?: string[];
   options?: ProductOption[];
 }
 

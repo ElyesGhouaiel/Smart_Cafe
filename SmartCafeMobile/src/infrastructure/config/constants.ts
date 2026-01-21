@@ -1,30 +1,20 @@
-/**
- * Application Constants
- *
- * Centralizes all magic numbers and constant values
- */
-
 export const COLORS = {
-  // Primary Colors
-  primary: '#1E3A8A', // Deep blue (café premium)
-  secondary: '#F59E0B', // Amber (CTA buttons)
+  primary: '#1E3A8A',
+  secondary: '#F59E0B',
 
-  // Semantic Colors
-  success: '#10B981', // Green
-  error: '#EF4444', // Red
-  warning: '#F59E0B', // Orange
-  info: '#3B82F6', // Blue
+  success: '#10B981',
+  error: '#EF4444',
+  warning: '#F59E0B',
+  info: '#3B82F6',
 
-  // Neutral Colors
-  background: '#F9FAFB', // Light gray
-  surface: '#FFFFFF', // White
-  text: '#111827', // Almost black
-  textSecondary: '#6B7280', // Gray
-  border: '#E5E7EB', // Light gray
-  disabled: '#9CA3AF', // Gray for disabled elements
-  placeholder: '#9CA3AF', // Gray for placeholders
+  background: '#F9FAFB',
+  surface: '#FFFFFF',
+  text: '#111827',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  disabled: '#9CA3AF',
+  placeholder: '#9CA3AF',
 
-  // Status Colors
   pending: '#F59E0B',
   preparing: '#3B82F6',
   ready: '#10B981',
@@ -48,7 +38,6 @@ export const FONT_SIZES = {
   lg: 18,
   xl: 24,
   xxl: 32,
-  // Aliases for compatibility
   small: 14,
   medium: 16,
   large: 18,
