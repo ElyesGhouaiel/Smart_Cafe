@@ -58,6 +58,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 
+// Servir les images statiques uploadées
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Documentation Swagger
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -86,10 +90,12 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Route non trouvée' });
 });
 
-// Démarrage du serveur
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur Smart Café démarré sur http://localhost:${PORT}`);
-  console.log(`📚 Documentation API: http://localhost:${PORT}/api-docs`);
-});
+// Démarrage du serveur uniquement si ce fichier est exécuté directement
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Serveur Smart Café démarré sur http://localhost:${PORT}`);
+    console.log(`📚 Documentation API: http://localhost:${PORT}/api-docs`);
+  });
+}
 
 module.exports = app;

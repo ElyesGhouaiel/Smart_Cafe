@@ -3,6 +3,7 @@ const router = express.Router();
 const productController = require('../controllers/product.controller');
 const { authenticate, authorize } = require('../middlewares/auth');
 const { body } = require('express-validator');
+const upload = require('../middlewares/uploadImage');
 
 /**
  * @swagger
@@ -80,13 +81,15 @@ router.get('/:id', productController.getById);
  *       201:
  *         description: Produit créé
  */
-router.post('/', [
+router.post('/',
   authenticate,
   authorize('admin', 'manager'),
+  upload.single('image'),
   body('name').notEmpty().withMessage('Le nom est requis'),
   body('price').isFloat({ min: 0 }).withMessage('Le prix doit être positif'),
-  body('categoryId').isInt().withMessage('La catégorie est requise')
-], productController.create);
+  body('categoryId').isInt().withMessage('La catégorie est requise'),
+  productController.create
+);
 
 /**
  * @swagger
@@ -106,7 +109,12 @@ router.post('/', [
  *       200:
  *         description: Produit mis à jour
  */
-router.put('/:id', authenticate, authorize('admin', 'manager'), productController.update);
+router.put('/:id',
+  authenticate,
+  authorize('admin', 'manager'),
+  upload.single('image'),
+  productController.update
+);
 
 /**
  * @swagger

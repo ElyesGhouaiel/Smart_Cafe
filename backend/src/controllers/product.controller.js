@@ -80,12 +80,16 @@ exports.create = async (req, res, next) => {
       });
     }
 
-    const { name, description, price, imageUrl, categoryId, preparationTime, allergens } = req.body;
+    const { name, description, price, categoryId, preparationTime, allergens } = req.body;
+    let imageUrl = req.body.imageUrl || null;
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
 
     const result = await dbAsync.run(`
       INSERT INTO products (name, description, price, image_url, category_id, preparation_time, allergens) 
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [name, description || null, price, imageUrl || null, categoryId, preparationTime || 10, allergens || null]);
+    `, [name, description || null, price, imageUrl, categoryId, preparationTime || 10, allergens || null]);
 
     const newProduct = await dbAsync.get('SELECT * FROM products WHERE id = ?', [result.lastID]);
 
@@ -105,7 +109,11 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, price, imageUrl, categoryId, preparationTime, allergens, isAvailable } = req.body;
+    const { name, description, price, categoryId, preparationTime, allergens, isAvailable } = req.body;
+    let imageUrl = req.body.imageUrl;
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
 
     await dbAsync.run(`
       UPDATE products 
