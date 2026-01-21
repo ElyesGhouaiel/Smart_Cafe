@@ -1,0 +1,834 @@
+openapi: 3.0.3
+info:
+  title: Smart Café API
+  description: |
+    API REST pour l'application mobile Smart Café.
+
+    **Authentification**: JWT Bearer Token
+    **Base URL Dev**: `https://staging-api.smartcafe.com/api/v1`
+    **Base URL Prod**: `https://api.smartcafe.com/api/v1`
+  version: 1.0.0
+  contact:
+    name: Smart Café Backend Team
+    email: backend@smartcafe.com
+
+servers:
+  - url: https://api.smartcafe.com/api/v1
+    description: Production
+  - url: https://staging-api.smartcafe.com/api/v1
+    description: Staging
+  - url: http://localhost:3000/api/v1
+    description: Local Development
+
+tags:
+  - name: Authentication
+    description: Endpoints d'authentification (JWT)
+  - name: Products
+    description: Gestion du menu et produits
+  - name: Orders
+    description: Gestion des commandes
+  - name: Users
+    description: Gestion du profil utilisateur
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Inscription nouvel utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, firstName, lastName]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: marie@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                  description: Min 8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial
+                firstName:
+                  type: string
+                  example: Marie
+                lastName:
+                  type: string
+                  example: Dupont
+                phone:
+                  type: string
+                  example: "+33612345678"
+                  nullable: true
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          description: Email déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: EMAIL_ALREADY_EXISTS
+                  message: Cet email est déjà utilisé
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Connexion utilisateur
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: marie@example.com
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass123!
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: INVALID_CREDENTIALS
+                  message: Email ou mot de passe incorrect
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Rafraîchir le JWT access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      responses:
+        '200':
+          description: Tokens rafraîchis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Nouveau JWT access token (15 min)
+                  refreshToken:
+                    type: string
+                    description: Nouveau refresh token (7 jours)
+        '401':
+          description: Refresh token invalide ou expiré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Déconnexion (révoque le refresh token)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Déconnexion réussie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out successfully
+
+  # ==================== PRODUCTS ====================
+  /products:
+    get:
+      tags: [Products]
+      summary: Liste des produits du menu
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [beverage, food, dessert]
+          description: Filtrer par catégorie
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Recherche par nom ou description
+        - name: available
+          in: query
+          schema:
+            type: boolean
+          description: Filtrer par disponibilité
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+  /products/{id}:
+    get:
+      tags: [Products]
+      summary: Détails d'un produit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détails du produit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ==================== ORDERS ====================
+  /orders:
+    get:
+      tags: [Orders]
+      summary: Liste des commandes de l'utilisateur
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, preparing, ready, completed, cancelled]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Liste des commandes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OrderSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Orders]
+      summary: Créer une nouvelle commande
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Commande créée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: '#/components/schemas/OrderDetails'
+                  paymentIntent:
+                    type: object
+                    properties:
+                      clientSecret:
+                        type: string
+                        description: Stripe Payment Intent client secret
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Produit non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Détails d'une commande
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détails de la commande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Pas votre commande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /orders/{id}/cancel:
+    patch:
+      tags: [Orders]
+      summary: Annuler une commande
+      description: Possible uniquement si status = 'pending'
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Commande annulée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  order:
+                    $ref: '#/components/schemas/OrderDetails'
+                  refund:
+                    type: object
+                    properties:
+                      amount:
+                        type: number
+                        format: float
+                      status:
+                        type: string
+                        enum: [pending, succeeded]
+        '400':
+          description: Annulation impossible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error:
+                  code: CANNOT_CANCEL
+                  message: La commande ne peut plus être annulée (déjà en préparation)
+
+  # ==================== USERS ====================
+  /users/me:
+    get:
+      tags: [Users]
+      summary: Profil de l'utilisateur connecté
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [Users]
+      summary: Modifier le profil
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                phone:
+                  type: string
+      responses:
+        '200':
+          description: Profil mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/fcm-token:
+    post:
+      tags: [Users]
+      summary: Enregistrer le token FCM pour notifications push
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fcmToken, platform]
+              properties:
+                fcmToken:
+                  type: string
+                  description: Firebase Cloud Messaging token
+                platform:
+                  type: string
+                  enum: [ios, android]
+      responses:
+        '200':
+          description: Token enregistré
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Token registered successfully
+
+# ==================== COMPONENTS ====================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtenu via /auth/login ou /auth/refresh
+
+  schemas:
+    # ===== AUTH =====
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+          description: JWT access token (15 min)
+        refreshToken:
+          type: string
+          description: Refresh token (7 jours)
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # ===== PRODUCTS =====
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        category:
+          type: string
+          enum: [beverage, food, dessert]
+        image:
+          type: string
+          format: uri
+        available:
+          type: boolean
+        preparationTime:
+          type: integer
+          description: Temps de préparation en minutes
+        allergens:
+          type: array
+          items:
+            type: string
+          example: ["gluten", "lactose"]
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["vegetarian", "vegan"]
+
+    ProductDetails:
+      allOf:
+        - $ref: '#/components/schemas/Product'
+        - type: object
+          properties:
+            images:
+              type: array
+              items:
+                type: string
+                format: uri
+            nutritionalInfo:
+              type: object
+              properties:
+                calories:
+                  type: integer
+                protein:
+                  type: number
+                carbs:
+                  type: number
+                fat:
+                  type: number
+            options:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  choices:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        priceModifier:
+                          type: number
+              example:
+                - id: size
+                  name: Taille
+                  choices:
+                    - id: small
+                      name: Petit
+                      priceModifier: 0
+                    - id: large
+                      name: Grand
+                      priceModifier: 1.5
+
+    # ===== ORDERS =====
+    CreateOrderRequest:
+      type: object
+      required: [items, orderType, paymentMethodId]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+              options:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    optionId:
+                      type: string
+                    choiceId:
+                      type: string
+              notes:
+                type: string
+        orderType:
+          type: string
+          enum: [dine-in, takeaway, delivery]
+        scheduledFor:
+          type: string
+          format: date-time
+          nullable: true
+        deliveryAddress:
+          type: object
+          properties:
+            street:
+              type: string
+            city:
+              type: string
+            postalCode:
+              type: string
+            instructions:
+              type: string
+        paymentMethodId:
+          type: string
+          description: Stripe Payment Method ID
+
+    OrderSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+          example: ORD-2026-001234
+        status:
+          type: string
+          enum: [pending, preparing, ready, completed, cancelled]
+        total:
+          type: number
+          format: float
+        createdAt:
+          type: string
+          format: date-time
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+        itemsCount:
+          type: integer
+
+    OrderDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderNumber:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+                format: uuid
+              productName:
+                type: string
+              productImage:
+                type: string
+                format: uri
+              quantity:
+                type: integer
+              unitPrice:
+                type: number
+              options:
+                type: array
+                items:
+                  type: object
+              subtotal:
+                type: number
+        subtotal:
+          type: number
+        tax:
+          type: number
+        deliveryFee:
+          type: number
+        total:
+          type: number
+        status:
+          type: string
+          enum: [pending, preparing, ready, completed, cancelled]
+        statusHistory:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              timestamp:
+                type: string
+                format: date-time
+        orderType:
+          type: string
+          enum: [dine-in, takeaway, delivery]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    # ===== COMMON =====
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Invalid input data
+            details:
+              type: object
+              nullable: true
+
+  responses:
+    Unauthorized:
+      description: Non authentifié (token manquant ou invalide)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Token invalide ou expiré
+
+    NotFound:
+      description: Ressource non trouvée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: NOT_FOUND
+              message: Ressource non trouvée
+
+    ValidationError:
+      description: Erreur de validation des données
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Données invalides
+              details:
+                email: Format email invalide
+                password: Mot de passe trop court (min 8 caractères)
