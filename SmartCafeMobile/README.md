@@ -2,6 +2,14 @@
 
 Application mobile React Native pour la commande et le paiement de produits dans un café.
 
+## Démo
+
+> **Vidéo de démonstration complète de l'application**
+
+https://github.com/ElyesGhouaiel/Smart_Cafe/assets/demo.mp4
+
+[📹 Voir la vidéo de démonstration](./docs/demo.mp4)
+
 ## Installation
 
 ```bash
