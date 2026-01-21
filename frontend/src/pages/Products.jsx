@@ -1,6 +1,29 @@
+  const openModal = (product = null) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product ? product.name : '',
+      description: product ? product.description : '',
+      price: product ? product.price.toString() : '',
+      categoryId: product ? (product.categoryId?.toString() || product.category_id?.toString() || '') : (categories[0]?.id?.toString() || ''),
+      preparationTime: product ? (product.preparationTime?.toString() || product.preparation_time?.toString() || '10') : '10',
+      allergens: product ? product.allergens : '',
+      isAvailable: product ? (product.isAvailable !== undefined ? !!product.isAvailable : !!product.is_available) : true,
+      images: [],
+    });
+    setShowModal(true);
+  };
 import { useState, useEffect } from 'react';
 import { productService, categoryService } from '../services/api';
 import { Plus, Edit2, Trash2, Check, X, Coffee } from 'lucide-react';
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const buildImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith('http')) return imagePath;
+  console.log(`Building image URL for path: ${BASE_URL.split('/').slice(0, 3).join('/')}${imagePath}`);
+  
+  return `${BASE_URL.split('/').slice(0, 3).join('/')}${imagePath}`;
+};
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -15,6 +38,8 @@ const Products = () => {
     categoryId: '',
     preparationTime: '10',
     allergens: '',
+    isAvailable: true,
+    images: [] // Ajout pour les fichiers images
   });
 
   useEffect(() => {
@@ -27,8 +52,12 @@ const Products = () => {
         productService.getAll(),
         categoryService.getAll(),
       ]);
-      setProducts(productsRes.data);
-      setCategories(categoriesRes.data);
+      // Correction : extraire le tableau de produits depuis productsRes.data.data
+      const productsArray = Array.isArray(productsRes.data)
+        ? productsRes.data
+        : (productsRes.data?.data || []);
+      setProducts(productsArray);
+      setCategories(Array.isArray(categoriesRes.data) ? categoriesRes.data : (categoriesRes.data?.data || []));
     } catch (error) {
       console.error('Erreur chargement:', error);
     } finally {
@@ -46,6 +75,8 @@ const Products = () => {
         categoryId: product.category_id?.toString() || '',
         preparationTime: product.preparation_time?.toString() || '10',
         allergens: product.allergens || '',
+        isAvailable: !!product.is_available,
+        images: []
       });
     } else {
       setEditingProduct(null);
@@ -56,9 +87,18 @@ const Products = () => {
         categoryId: categories[0]?.id?.toString() || '',
         preparationTime: '10',
         allergens: '',
+        isAvailable: true,
+        images: []
       });
     }
     setShowModal(true);
+  };
+  // Gérer la sélection de fichiers images
+  const handleImageChange = (e) => {
+    setFormData({
+      ...formData,
+      images: Array.from(e.target.files)
+    });
   };
 
   const closeModal = () => {
@@ -69,21 +109,51 @@ const Products = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = {
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        categoryId: parseInt(formData.categoryId),
-        preparationTime: parseInt(formData.preparationTime),
-        allergens: formData.allergens,
-      };
-
-      if (editingProduct) {
-        await productService.update(editingProduct.id, data);
-      } else {
-        await productService.create(data);
+      // Validation catégorie
+      if (!formData.categoryId || parseInt(formData.categoryId, 10) < 1) {
+        alert('Sélectionne une catégorie valide');
+        return;
       }
-      
+      // Debug
+      console.log('Données envoyées:', {
+        categoryId: formData.categoryId,
+        categoryInt: parseInt(formData.categoryId, 10)
+      });
+      const hasImage = formData.images && formData.images.length > 0 && formData.images[0] instanceof File;
+      let dataToSend;
+      let isFormData = false;
+      if (hasImage) {
+        isFormData = true;
+        const fd = new window.FormData();
+        fd.append('name', formData.name);
+        fd.append('description', formData.description);
+        fd.append('price', String(parseFloat(formData.price)));
+        fd.append('categoryId', String(parseInt(formData.categoryId, 10)));
+        fd.append('preparationTime', String(parseInt(formData.preparationTime, 10)));
+        fd.append('allergens', formData.allergens);
+        fd.append('isAvailable', formData.isAvailable ? '1' : '0');
+        fd.append('image', formData.images[0]);
+        dataToSend = fd;
+        // Debug : log FormData
+        for (const [key, value] of fd.entries()) {
+          console.log('FormData:', key, value);
+        }
+      } else {
+        dataToSend = {
+          name: formData.name,
+          description: formData.description,
+          price: parseFloat(formData.price),
+          categoryId: parseInt(formData.categoryId, 10),
+          preparationTime: parseInt(formData.preparationTime, 10),
+          allergens: formData.allergens,
+          isAvailable: formData.isAvailable ? 1 : 0,
+        };
+      }
+      if (editingProduct) {
+        await productService.update(editingProduct.id, dataToSend, isFormData);
+      } else {
+        await productService.create(dataToSend, isFormData);
+      }
       closeModal();
       loadData();
     } catch (error) {
@@ -158,6 +228,19 @@ const Products = () => {
                 {products.map((product) => (
                   <tr key={product.id}>
                     <td>
+                      {product.image_url ? (
+                        <img 
+                          src={buildImageUrl(product.image_url)} 
+                          alt={product.name}
+                          style={{ maxWidth: 60, maxHeight: 60, marginRight: 8, borderRadius: 4 }} 
+                          onError={(e) => {
+                            console.error('Image failed:', e.currentTarget.src);
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <span style={{color: '#999'}}>📷 Pas d'image</span>
+                      )}
                       <strong>{product.name}</strong>
                       {product.description && (
                         <small className="text-muted d-block">{product.description}</small>
@@ -279,6 +362,40 @@ const Products = () => {
                     />
                   </div>
                 </div>
+              </div>
+              <div className="form-group">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={formData.isAvailable}
+                    onChange={e => setFormData({ ...formData, isAvailable: e.target.checked })}
+                  />
+                  Disponible
+                </label>
+              </div>
+              <div className="form-group">
+                <label>Images</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageChange}
+                />
+                {/* Aperçu des images sélectionnées */}
+                {formData.images && formData.images.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                    {formData.images.map((file, idx) => (
+                      file instanceof File ? (
+                        <img
+                          key={idx}
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          style={{ maxWidth: 60, maxHeight: 60, borderRadius: 4 }}
+                        />
+                      ) : null
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>

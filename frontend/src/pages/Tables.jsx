@@ -20,7 +20,7 @@ const Tables = () => {
   const loadTables = async () => {
     try {
       const response = await tableService.getAll();
-      setTables(response.data);
+      setTables(Array.isArray(response.data) ? response.data : (response.data?.data || []));
     } catch (error) {
       console.error('Erreur chargement:', error);
     } finally {

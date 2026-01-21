@@ -2,12 +2,19 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
+
 const api = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
+
+// Helper pour configurer les headers selon le type de payload
+const buildConfig = (isFormData = false) => {
+  const config = {};
+  if (!isFormData) {
+    config.headers = { 'Content-Type': 'application/json' };
+  }
+  return config;
+};
 
 // Intercepteur pour ajouter le token JWT
 api.interceptors.request.use(
@@ -62,8 +69,10 @@ export const categoryService = {
 export const productService = {
   getAll: (params) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
-  create: (data) => api.post('/products', data),
-  update: (id, data) => api.put(`/products/${id}`, data),
+  create: (data, isFormData = false) =>
+    api.post('/products', data, buildConfig(isFormData)),
+  update: (id, data, isFormData = false) =>
+    api.put(`/products/${id}`, data, buildConfig(isFormData)),
   delete: (id) => api.delete(`/products/${id}`),
   toggleAvailability: (id) => api.patch(`/products/${id}/availability`),
 };

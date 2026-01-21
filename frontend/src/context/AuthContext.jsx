@@ -28,17 +28,15 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const response = await authService.login(email, password);
-      const { token, user: userData } = response.data;
-      
+      const { token, user: userData } = response.data.data;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
-      
       return { success: true };
     } catch (error) {
-      return { 
-        success: false, 
-        error: error.response?.data?.error || 'Erreur de connexion' 
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Erreur de connexion'
       };
     }
   };

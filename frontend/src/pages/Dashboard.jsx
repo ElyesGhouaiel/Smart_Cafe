@@ -27,10 +27,10 @@ const Dashboard = () => {
         orderService.getAll(),
       ]);
 
-      const products = productsRes.data;
-      const categories = categoriesRes.data;
-      const tables = tablesRes.data;
-      const orders = ordersRes.data;
+      const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.data || []);
+      const categories = Array.isArray(categoriesRes.data) ? categoriesRes.data : (categoriesRes.data?.data || []);
+      const tables = Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.data || []);
+      const orders = Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data?.data || []);
 
       setStats({
         products: products.length,

@@ -20,7 +20,7 @@ const Categories = () => {
   const loadCategories = async () => {
     try {
       const response = await categoryService.getAll();
-      setCategories(response.data);
+      setCategories(Array.isArray(response.data) ? response.data : (response.data?.data || []));
     } catch (error) {
       console.error('Erreur chargement:', error);
     } finally {

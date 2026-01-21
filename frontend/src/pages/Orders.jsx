@@ -28,9 +28,9 @@ const Orders = () => {
         tableService.getAll(),
         productService.getAll(),
       ]);
-      setOrders(ordersRes.data);
-      setTables(tablesRes.data);
-      setProducts(productsRes.data);
+      setOrders(Array.isArray(ordersRes.data) ? ordersRes.data : (ordersRes.data?.data || []));
+      setTables(Array.isArray(tablesRes.data) ? tablesRes.data : (tablesRes.data?.data || []));
+      setProducts(Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data?.data || []));
     } catch (error) {
       console.error('Erreur chargement:', error);
     } finally {
