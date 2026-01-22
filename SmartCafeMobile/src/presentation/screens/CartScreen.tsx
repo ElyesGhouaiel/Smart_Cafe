@@ -16,6 +16,7 @@ import {COLORS, SPACING} from '../../infrastructure/config/constants';
 import {formatPrice} from '../../infrastructure/utils/formatters';
 import {CartService} from '../../infrastructure/services/CartService';
 import {OrderService} from '../../infrastructure/services/OrderService';
+import {PaymentService} from '../../infrastructure/services/PaymentService';
 import {styles} from './CartScreen.styles';
 
 export const CartScreen: React.FC = () => {
@@ -118,10 +119,20 @@ export const CartScreen: React.FC = () => {
     setCheckoutLoading(true);
 
     try {
-      // Create order via API with selected table
+      // 1. Process payment via Stripe
+      console.log('[CartScreen] Processing payment...');
+      const paymentResult = await PaymentService.processPayment(cart.total);
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.error || 'Paiement annulé');
+      }
+
+      console.log('[CartScreen] Payment successful:', paymentResult.paymentIntentId);
+
+      // 2. Create order via API with selected table
       const order = await OrderService.createOrder(cart, selectedTable);
 
-      // Clear cart after successful order
+      // 3. Clear cart after successful order
       await CartService.clearCart();
       setCart({
         items: [],
@@ -132,17 +143,17 @@ export const CartScreen: React.FC = () => {
       });
       setSelectedTable(null);
 
-      // Show success message
+      // 4. Show success message
       Alert.alert(
-        '✓ Commande validée',
-        `Votre commande #${order.orderNumber} a été enregistrée pour la table ${selectedTable}.\n\nTotal : ${formatPrice(cart.total)}\n\nVous pouvez suivre votre commande dans l'historique.`,
+        '✓ Paiement réussi !',
+        `Votre commande #${order.orderNumber} a été payée et enregistrée pour la table ${selectedTable}.\n\nTotal : ${formatPrice(cart.total)}\n\nVous pouvez suivre votre commande dans l'historique.`,
         [{text: 'OK'}],
       );
     } catch (error: any) {
       console.error('[CartScreen] Checkout failed:', error);
       Alert.alert(
         'Erreur',
-        error.message || 'Impossible de passer la commande',
+        error.message || 'Impossible de finaliser la commande',
       );
     } finally {
       setCheckoutLoading(false);
@@ -257,7 +268,7 @@ export const CartScreen: React.FC = () => {
         </View>
 
         <Button
-          title={`Commander ${formatPrice(cart.total)}`}
+          title={`Payer ${formatPrice(cart.total)}`}
           onPress={handleCheckout}
           loading={checkoutLoading}
         />

@@ -7,6 +7,7 @@
 import React, {useState, useEffect} from 'react';
 import {StatusBar, StyleSheet, View, TouchableOpacity, Text, ActivityIndicator, Alert} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {StripeProvider} from '@stripe/stripe-react-native';
 import {LoginScreen} from './src/presentation/screens/LoginScreen';
 import {RegisterScreen} from './src/presentation/screens/RegisterScreen';
 import {ProfileScreen} from './src/presentation/screens/ProfileScreen';
@@ -15,6 +16,7 @@ import {CartScreen} from './src/presentation/screens/CartScreen';
 import {OrdersScreen} from './src/presentation/screens/OrdersScreen';
 import {COLORS, SPACING, FONT_SIZES} from './src/infrastructure/config/constants';
 import {AuthService} from './src/infrastructure/services/AuthService';
+import ENV from './src/infrastructure/config/env';
 
 type Screen = 'login' | 'register' | 'menu' | 'cart' | 'orders';
 
@@ -99,10 +101,11 @@ function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
-      <View style={styles.container}>
-        {renderScreen()}
+    <StripeProvider publishableKey={ENV.STRIPE_PUBLISHABLE_KEY}>
+      <SafeAreaProvider>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.primary} />
+        <View style={styles.container}>
+          {renderScreen()}
 
         {/* Simple tab bar for navigation (MVP) */}
         <View style={styles.tabBar}>
@@ -189,6 +192,7 @@ function App() {
         </View>
       </View>
     </SafeAreaProvider>
+    </StripeProvider>
   );
 }
 
